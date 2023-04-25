@@ -1,0 +1,103 @@
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+
+class BPlusTree
+{
+    private const int order = 4;
+    private Node root;
+
+    public BPlusTree()
+    {
+        root = new Node { IsLeaf = true };
+    }
+
+    public List<string> Search(string key)
+    {
+        Node node = root;
+        while (!node.IsLeaf)
+        {
+            int i = 0;
+            while (i < node.Keys.Count && key.CompareTo(node.Keys[i]) >= 0)
+            {
+                i++;
+            }
+            node = node.Children[i];
+        }
+        return node.Records.FindAll(r => r.Id == key).ConvertAll(r => r.Data);
+    }
+
+    private void Insert(Record record)
+    {
+        Node node = root;
+        List<Node> path = new List<Node>();
+        while (!node.IsLeaf)
+        {
+            int i = 0;
+            while (i < node.Keys.Count && record.Id.CompareTo(node.Keys[i]) >= 0)
+            {
+                i++;
+            }
+            path.Add(node);
+            node = node.Children[i];
+        }
+        int j = 0;
+        while (j < node.Records.Count && record.Id.CompareTo(node.Records[j].
+//-
+
+            j++;
+        }
+        node.Records.Insert(j, record);
+        if (node.Records.Count > order - 1)
+        {
+            SplitNode(node, path);
+        }
+    }
+
+    private void SplitNode(Node node, List<Node> path)
+    {
+        Node parent = null;
+        int mid = node.Keys.Count / 2;
+        Node left = new Node { IsLeaf = node.IsLeaf, Keys = node.Keys.GetRange(0, mid), Records = node.Records.GetRange(0, mid + 1) };
+        Node right = new Node { IsLeaf = node.IsLeaf, Keys = node.Keys.GetRange(mid + 1, node.Keys.Count - mid - 1), Records = node.Records.GetRange(mid + 1, node.Records.Count - mid - 1) };
+        if (path.Count > 0)
+        {
+            parent = path[path.Count - 1];
+            left.Next = right;
+            int i = parent.Children.IndexOf(node);
+            parent.Children.RemoveAt(i);
+            parent.Children.InsertRange(i, new List<Node> { left, right });
+            parent.Keys.Insert(i, node.Keys[mid]);
+            parent.Records.RemoveAt(i);
+            parent.Records.InsertRange(i, left.
+//-
+
+                            Insert(record);
+                        }
+                    }
+                }
+            }
+            foreach (Record record in root.Records)
+            {
+                writer.WriteLine(record.Data);
+            }
+        }
+    }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        string[] filenames = Directory.GetFiles(@"C:\Data\", "*.csv");
+        BPlusTree tree = new BPlusTree();
+        tree.MergeFiles(filenames, @"C:\Data\merged.csv");
+
+        List<string> results = tree.Search("12345");
+        foreach (string result in results)
+        {
+            Console.WriteLine(result);
+        }
+    }
+}

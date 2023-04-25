@@ -1,0 +1,130 @@
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+class Record
+{
+    public string Id { get; set; }
+    public string Data { get; set; }
+}
+
+class Node
+{
+    public List<string> Keys { get; set; } = new List<string>();
+    public List<Node> Children { get; set; } = new List<Node>();
+    public List<Record> Records { get; set; } = new List<Record>();
+}
+
+class BPlusTree
+{
+    private int order = 4;
+    private Node root = new Node();
+
+    public void Insert(Record record)
+    {
+        Node node = root;
+        List<Node> path = new List<Node>();
+        while (node.Children.Any())
+        {
+            int i = node.Keys.BinarySearch(record.Id);
+            if (i < 0) i = ~i;
+            path.Add(node);
+            node = node.Children[i];
+        }
+        int j = node.Keys.BinarySearch(record.Id);
+        if (j < 0) j = ~j;
+        node.Keys.Insert(j, record.
+//-
+        node.Records.Insert(j, record);
+        if (node.Records.Count > order)
+        {
+            SplitNode(node, path);
+        }
+    }
+
+    private void SplitNode(Node node, List<Node> path)
+    {
+        int mid = node.Records.Count / 2;
+        Node left = new Node
+        {
+            Keys = node.Keys.GetRange(0, mid),
+            Children = node.Children.GetRange(0, mid + 1),
+            Records = node.Records.GetRange(0, mid)
+        };
+        Node right = new Node
+        {
+            Keys = node.Keys.GetRange(mid + 1, node.Records.Count - mid - 1),
+            Children = node.Children.GetRange(mid + 1, node.Records.Count - mid),
+            Records = node.Records.GetRange(mid, node.Records.Count - mid)
+        };
+        if (path.Any())
+        {
+            Node parent = path.Last();
+            int i = parent.Keys.BinarySearch(node.Keys[mid]);
+            if (i < 0) i = ~i;
+            parent.Keys.Insert(i, node.Keys[mid]);
+            parent.Children[i] = left;
+            parent.Children.Insert(i + 1, right);
+            parent.
+//-
+            parent.Records.RemoveAt(path.Count - 1);
+            parent.Records.InsertRange(i, left.Records);
+            parent.Records.InsertRange(i + left.Records.Count, right.Records);
+            if (parent.Records.Count > order)
+            {
+                SplitNode(parent, path.Take(path.Count - 1).ToList());
+            }
+        }
+        else
+        {
+            root = new Node
+            {
+                Keys = { node.Keys[mid] },
+                Children = { left, right },
+                Records = node.Records
+            };
+        }
+    }
+
+    public void MergeFiles(string[] filenames, string outputFilename)
+    {
+        HashSet<string> mergedIds = new HashSet<string>();
+        using (StreamWriter writer = new StreamWriter(outputFilename))
+        {
+            foreach (string filename in filenames)
+            {
+                using (StreamReader reader = new StreamReader(filename))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        string line = reader.ReadLine();
+                        string[] parts = line.Split(',');
+                        Record record = new Record { Id = parts[0], Data = line };
+                        if (!mergedIds.Contains(record.Id))
+                        {
+                            mergedIds.Add(record.
+//-
+                            Insert(record);
+                        }
+                    }
+                }
+            }
+            foreach (Record record in root.Records)
+            {
+                writer.WriteLine(record.Data);
+            }
+        }
+    }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        string[] filenames = Directory.GetFiles(@"C:\Data\", "*.csv");
+        BPlusTree tree = new BPlusTree();
+        tree.MergeFiles(filenames, @"C:\Data\merged.csv");
+    }
+}
